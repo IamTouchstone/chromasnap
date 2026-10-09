@@ -27,7 +27,7 @@ CHROMA SNAP is an ultra-simple, fast colour-and-calculation puzzle game built wi
 - **Framework**: React Native 0.86.2 with Expo SDK 57.0.9
 - **Language**: TypeScript (`strict: true`)
 - **State & Storage**: React Hooks & `@react-native-async-storage/async-storage` (with resilient in-memory fallback)
-- **Audio**: `expo-av` with custom 16-bit 44.1kHz PCM sound effects (`tap.wav`, `correct.wav`, `streak.wav`, `mistake.wav`, `button.wav`)
+- **Audio**: `expo-audio` with custom 16-bit 44.1kHz PCM sound effects (`tap.wav`, `correct.wav`, `streak.wav`, `mistake.wav`, `button.wav`)
 - **Haptics**: `expo-haptics` with fail-safe error isolation
 - **Orientation**: Portrait-locked (`portrait`)
 - **Architecture**: Expo New Architecture ready (`newArchEnabled`)
