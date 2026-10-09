@@ -9,7 +9,6 @@ import {
   recordGameEnd,
   getCachedSettings,
 } from './services/storage';
-import { initAudio } from './services/audio';
 import { SplashScreen } from './screens/SplashScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { TutorialScreen } from './screens/TutorialScreen';
@@ -28,12 +27,11 @@ export default function App() {
   const [lastStreak, setLastStreak] = useState<number>(0);
   const [lastSolves, setLastSolves] = useState<number>(0);
 
-  // Initialize storage and audio on boot
+  // Initialize storage on boot
   useEffect(() => {
     async function boot() {
       const loaded = await loadStoredSettings();
       setSettings(loaded);
-      initAudio().catch(() => {});
     }
     boot();
   }, []);

@@ -14,7 +14,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#101010"
         }
-      ]
+      ],
+      "expo-audio",
+      "expo-asset"
     ],
     "ios": {
       "supportsTablet": false,
