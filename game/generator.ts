@@ -1,7 +1,17 @@
 import { Block, ChromaColor, ColorValue, DifficultyState, GridSize, Puzzle } from './types';
 import { VALUE_TO_COLOR } from './constants';
 
-// Fast seeded pseudo-random number generator (Mulberry32)
+// === NEW: RUN-SCOPED MEMORY ===
+const usedTargetsThisRun = new Set<number>();
+
+export function clearUsedTargets() {
+  usedTargetsThisRun.clear();
+}
+export function getUsedTargets() {
+  return [...usedTargetsThisRun];
+}
+// === END NEW ===
+
 export function createRNG(seed?: number) {
   let s = seed !== undefined ? seed >>> 0 : (Date.now() ^ (Math.random() * 0x100000000)) >>> 0;
   return function next(): number {
@@ -13,12 +23,10 @@ export function createRNG(seed?: number) {
   };
 }
 
-// Generate an integer between min and max inclusive using rng
 function randInt(rng: () => number, min: number, max: number): number {
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
-// Shuffle array in-place
 function shuffle<T>(array: T[], rng: () => number): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -27,35 +35,19 @@ function shuffle<T>(array: T[], rng: () => number): T[] {
   return array;
 }
 
-/**
- * Finds all combination solutions on a given board that equal the target.
- * Bounded search for performance.
- */
 export function findSolutions(
   blocks: Block[],
   target: number,
-  maxSolutionLength = 5,
+  maxSolutionLength = 8,
   maxSolutionsToFind = 10
 ): string[][] {
   const solutions: string[][] = [];
-
-  function backtrack(
-    startIndex: number,
-    currentSum: number,
-    currentBlockIds: string[]
-  ) {
+  function backtrack(startIndex: number, currentSum: number, currentBlockIds: string[]) {
     if (currentSum === target) {
       solutions.push([...currentBlockIds]);
       return;
     }
-    if (
-      currentSum > target ||
-      currentBlockIds.length >= maxSolutionLength ||
-      solutions.length >= maxSolutionsToFind
-    ) {
-      return;
-    }
-
+    if (currentSum > target || currentBlockIds.length >= maxSolutionLength || solutions.length >= maxSolutionsToFind) return;
     for (let i = startIndex; i < blocks.length; i++) {
       const b = blocks[i];
       if (currentSum + b.value <= target) {
@@ -65,130 +57,105 @@ export function findSolutions(
       }
     }
   }
-
   backtrack(0, 0, []);
   return solutions;
 }
 
-/**
- * Fallback puzzle guaranteed to be valid in case of any generation anomaly.
- */
-export function getFallbackPuzzle(): Puzzle {
-  const colors: ChromaColor[] = [
-    'RED', 'BLUE', 'YELLOW',
-    'GREEN', 'PURPLE', 'RED',
-    'BLUE', 'GREEN', 'PURPLE'
-  ];
-  const blocks: Block[] = colors.map((c, i) => {
-    let val: ColorValue = 1;
-    if (c === 'BLUE') val = 2;
-    if (c === 'YELLOW') val = 3;
-    if (c === 'GREEN') val = 4;
-    if (c === 'PURPLE') val = 5;
-
-    return {
-      id: `block-fallback-${i}`,
-      color: c,
-      value: val,
-      row: Math.floor(i / 3),
-      col: i % 3,
-    };
-  });
-
-  // Target 4: Red(1) at 0 + Yellow(3) at 2
-  return {
-    gridSize: 3,
-    blocks,
-    target: 4,
-    solutionBlockIds: [blocks[0].id, blocks[2].id],
-    maxTimeSeconds: 15,
-  };
+export function getFallbackPuzzle(difficulty?: DifficultyState): Puzzle {
+  const gridSize: GridSize = difficulty?.gridSize || 3;
+  const targetBlocks = difficulty?.targetBlockCountMin || 2;
+  const blocks: Block[] = [];
+  const solutionBlockIds: string[] = [];
+  let target = 0;
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      const idx = r * gridSize + c;
+      const val: ColorValue = (((idx * 2 + 1) % 5) + 1) as ColorValue;
+      const id = `b-fallback-${r}-${c}`;
+      blocks.push({ id, color: VALUE_TO_COLOR[val], value: val, row: r, col: c });
+      if (solutionBlockIds.length < targetBlocks) {
+        solutionBlockIds.push(id);
+        target += val;
+      }
+    }
+  }
+  return { gridSize, blocks, target, solutionBlockIds, maxTimeSeconds: difficulty?.timeLimitSeconds || 15 };
 }
 
-/**
- * Generates a validated puzzle based on difficulty settings and optional seed.
- */
-export function generatePuzzle(difficulty: DifficultyState, seed?: number): Puzzle {
+// Your original logic extracted
+function generateOnePuzzle(difficulty: DifficultyState, seed?: number): Puzzle {
   const rng = createRNG(seed);
   const totalBlocks = difficulty.gridSize * difficulty.gridSize;
+  const maxBlockLen = Math.max(8, difficulty.targetBlockCountMax + 1);
 
-  for (let attempt = 0; attempt < 50; attempt++) {
-    // Balanced distribution of values (1 to 5)
-    // Guarantee that at least two of each value 1..5 are in the bag for good combinations
+  for (let attempt = 0; attempt < 60; attempt++) {
     const valuePool: ColorValue[] = [];
+    const copiesPerVal = Math.max(1, Math.floor(totalBlocks / 5));
     for (let v = 1; v <= 5; v++) {
-      valuePool.push(v as ColorValue);
-      valuePool.push(v as ColorValue);
+      for (let c = 0; c < copiesPerVal; c++) valuePool.push(v as ColorValue);
     }
-    while (valuePool.length < totalBlocks) {
-      valuePool.push(randInt(rng, 1, 5) as ColorValue);
-    }
+    while (valuePool.length < totalBlocks) valuePool.push(randInt(rng, 1, 5) as ColorValue);
     shuffle(valuePool, rng);
 
-    // Build block objects
     const blocks: Block[] = [];
     for (let r = 0; r < difficulty.gridSize; r++) {
       for (let c = 0; c < difficulty.gridSize; c++) {
         const idx = r * difficulty.gridSize + c;
         const val = valuePool[idx];
-        const color = VALUE_TO_COLOR[val];
-        blocks.push({
-          id: `b-${r}-${c}-${attempt}`,
-          color,
-          value: val,
-          row: r,
-          col: c,
-        });
+        blocks.push({ id: `b-${r}-${c}-${attempt}`, color: VALUE_TO_COLOR[val], value: val, row: r, col: c });
       }
     }
 
-    // Pick a candidate solution subset of blocks
-    const targetSize = randInt(
-      rng,
-      difficulty.targetBlockCountMin,
-      difficulty.targetBlockCountMax
-    );
-    const candidateIndices: number[] = [];
     const availableIndices = Array.from({ length: totalBlocks }, (_, i) => i);
-    shuffle(availableIndices, rng);
+    for (let comboAttempt = 0; comboAttempt < 30; comboAttempt++) {
+      const targetSize = randInt(rng, difficulty.targetBlockCountMin, difficulty.targetBlockCountMax);
+      shuffle(availableIndices, rng);
+      const candidateIndices = availableIndices.slice(0, targetSize);
+      const candidateSum = candidateIndices.reduce((sum, idx) => sum + blocks[idx].value, 0);
 
-    for (let k = 0; k < targetSize; k++) {
-      candidateIndices.push(availableIndices[k]);
-    }
-
-    const candidateSum = candidateIndices.reduce(
-      (sum, idx) => sum + blocks[idx].value,
-      0
-    );
-
-    // Check if candidateSum meets target constraints
-    if (
-      candidateSum >= difficulty.minTarget &&
-      candidateSum <= difficulty.maxTarget
-    ) {
-      const solutionBlockIds = candidateIndices.map((idx) => blocks[idx].id);
-
-      // Verify with backtracking solver
-      const verifiedSolutions = findSolutions(blocks, candidateSum, 5, 5);
-      if (verifiedSolutions.length > 0) {
-        return {
-          gridSize: difficulty.gridSize,
-          blocks,
-          target: candidateSum,
-          solutionBlockIds,
-          maxTimeSeconds: difficulty.timeLimitSeconds,
-        };
+      if (candidateSum >= difficulty.minTarget && candidateSum <= difficulty.maxTarget) {
+        const solutionBlockIds = candidateIndices.map((idx) => blocks[idx].id);
+        const verifiedSolutions = findSolutions(blocks, candidateSum, maxBlockLen, 1);
+        if (verifiedSolutions.length > 0) {
+          return { gridSize: difficulty.gridSize, blocks, target: candidateSum, solutionBlockIds, maxTimeSeconds: difficulty.timeLimitSeconds };
+        }
       }
     }
   }
-
-  // Safe fallback if loop exhausts
-  return getFallbackPuzzle();
+  return getFallbackPuzzle(difficulty);
 }
 
-/**
- * Returns deterministic date integer seed for Daily Challenge (e.g. 20261009)
- */
+// === NEW MAIN FUNCTION — USE THIS EVERYWHERE ===
+export function generatePuzzle(difficulty: DifficultyState, seed?: number): Puzzle {
+  // Try up to 80 times to find an UNUSED target
+  for (let i = 0; i < 80; i++) {
+    const puzzle = generateOnePuzzle(difficulty, seed ? seed + i : undefined);
+    if (!usedTargetsThisRun.has(puzzle.target)) {
+      usedTargetsThisRun.add(puzzle.target);
+      return puzzle;
+    }
+  }
+
+  // Exhaustion: expand max beyond current level to find higher unused number
+  const expandedDifficulty: DifficultyState = {
+    ...difficulty,
+    maxTarget: difficulty.maxTarget + 50,
+    minTarget: difficulty.maxTarget + 1,
+  };
+  for (let high = 0; high < 50; high++) {
+    const puzzle = generateOnePuzzle(expandedDifficulty, seed ? seed + 100 + high : undefined);
+    if (!usedTargetsThisRun.has(puzzle.target)) {
+      usedTargetsThisRun.add(puzzle.target);
+      return puzzle;
+    }
+  }
+
+  // Last resort — still return but add (should never happen)
+  const fallback = generateOnePuzzle(difficulty, seed);
+  usedTargetsThisRun.add(fallback.target);
+  return fallback;
+}
+
 export function getDailySeed(): number {
   const now = new Date();
   return now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();

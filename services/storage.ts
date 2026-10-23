@@ -6,6 +6,7 @@ const STORAGE_KEY = '@chroma_snap_settings_v1';
 const DEFAULT_SETTINGS: StoredSettings = {
   bestScore: 0,
   bestStreak: 0,
+  bestLevel: 1,
   gamesPlayed: 0,
   correctAnswers: 0,
   bestSolveTime: null,
@@ -61,12 +62,17 @@ export async function recordRoundSolved(solveTimeSeconds: number, streak: number
   });
 }
 
-export async function recordGameEnd(finalScore: number, finalStreak: number): Promise<StoredSettings> {
+export async function recordGameEnd(
+  finalScore: number,
+  finalStreak: number,
+  finalLevel: number = 1
+): Promise<StoredSettings> {
   const current = memorySettings;
   return saveStoredSettings({
     gamesPlayed: current.gamesPlayed + 1,
     bestScore: Math.max(current.bestScore, finalScore),
     bestStreak: Math.max(current.bestStreak, finalStreak),
+    bestLevel: Math.max(current.bestLevel || 1, finalLevel),
   });
 }
 

@@ -9,6 +9,7 @@ import {
   recordGameEnd,
   getCachedSettings,
 } from './services/storage';
+import { clearUsedTargets } from './game/generator'; // <-- FIX
 import { SplashScreen } from './screens/SplashScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { TutorialScreen } from './screens/TutorialScreen';
@@ -22,12 +23,11 @@ export default function App() {
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
   const [isDailyRun, setIsDailyRun] = useState<boolean>(false);
 
-  // Results state
   const [lastScore, setLastScore] = useState<number>(0);
   const [lastStreak, setLastStreak] = useState<number>(0);
   const [lastSolves, setLastSolves] = useState<number>(0);
+  const [lastLevel, setLastLevel] = useState<number>(1);
 
-  // Initialize storage on boot
   useEffect(() => {
     async function boot() {
       const loaded = await loadStoredSettings();
@@ -36,7 +36,6 @@ export default function App() {
     boot();
   }, []);
 
-  // Splash completed handler
   const handleSplashFinish = () => {
     if (!settings.tutorialComplete) {
       setCurrentScreen('TUTORIAL');
@@ -45,61 +44,63 @@ export default function App() {
     }
   };
 
-  // Tutorial completed / skipped handler
   const handleTutorialComplete = async () => {
     const updated = await saveStoredSettings({ tutorialComplete: true });
     setSettings(updated);
+    clearUsedTargets(); // <-- FIX: fresh run after tutorial
     setCurrentScreen('GAME');
   };
 
   const handleTutorialSkip = async () => {
     const updated = await saveStoredSettings({ tutorialComplete: true });
     setSettings(updated);
+    clearUsedTargets(); // <-- FIX
     setCurrentScreen('GAME');
   };
 
-  // Toggle Sound
   const handleToggleSound = async () => {
     const updated = await saveStoredSettings({ soundEnabled: !settings.soundEnabled });
     setSettings(updated);
   };
 
-  // Toggle Haptics
   const handleToggleHaptics = async () => {
     const updated = await saveStoredSettings({ hapticsEnabled: !settings.hapticsEnabled });
     setSettings(updated);
   };
 
-  // Start standard game
+  // Start standard game — THIS IS YOUR RETRY
   const handleStartPlay = () => {
+    clearUsedTargets(); // <-- FIX: this is the ONLY place that clears = no repeats till retry
     setIsDailyRun(false);
     setCurrentScreen('GAME');
   };
 
-  // Start daily challenge
+  // Start daily challenge — new run
   const handleStartDaily = () => {
+    clearUsedTargets(); // <-- FIX
     setIsDailyRun(true);
     setCurrentScreen('GAME');
   };
 
-  // Session finished from GameScreen
-  const handleSessionEnd = async (finalScore: number, finalStreak: number, solves: number) => {
-    const updated = await recordGameEnd(finalScore, finalStreak);
+  const handleSessionEnd = async (
+    finalScore: number,
+    finalStreak: number,
+    solves: number,
+    finalLevel: number = 1
+  ) => {
+    const updated = await recordGameEnd(finalScore, finalStreak, finalLevel);
     setSettings(updated);
     setLastScore(finalScore);
     setLastStreak(finalStreak);
     setLastSolves(solves);
+    setLastLevel(finalLevel);
     setCurrentScreen('RESULTS');
   };
 
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-
-      {currentScreen === 'SPLASH' && (
-        <SplashScreen onFinish={handleSplashFinish} />
-      )}
-
+      {currentScreen === 'SPLASH' && <SplashScreen onFinish={handleSplashFinish} />}
       {currentScreen === 'HOME' && (
         <HomeScreen
           settings={settings}
@@ -110,44 +111,26 @@ export default function App() {
           onHowToPlayPress={() => setShowHowToPlay(true)}
         />
       )}
-
       {currentScreen === 'TUTORIAL' && (
-        <TutorialScreen
-          onComplete={handleTutorialComplete}
-          onSkip={handleTutorialSkip}
-        />
+        <TutorialScreen onComplete={handleTutorialComplete} onSkip={handleTutorialSkip} />
       )}
-
-      {currentScreen === 'GAME' && (
-        <GameScreen
-          isDailyChallenge={isDailyRun}
-          onSessionEnd={handleSessionEnd}
-        />
-      )}
-
+      {currentScreen === 'GAME' && <GameScreen isDailyChallenge={isDailyRun} onSessionEnd={handleSessionEnd} />}
       {currentScreen === 'RESULTS' && (
         <ResultsScreen
           score={lastScore}
           streak={lastStreak}
           solves={lastSolves}
+          level={lastLevel}
           settings={settings}
           onPlayAgain={handleStartPlay}
           onHomePress={() => setCurrentScreen('HOME')}
         />
       )}
-
-      {/* How To Play Modal */}
-      <HowToPlayModal
-        visible={showHowToPlay}
-        onClose={() => setShowHowToPlay(false)}
-      />
+      <HowToPlayModal visible={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
+  root: { flex: 1, backgroundColor: THEME.background },
 });

@@ -36,3 +36,15 @@ export async function triggerHapticWarning(): Promise<void> {
     // Fail gracefully
   }
 }
+
+export async function triggerHapticLevelComplete(): Promise<void> {
+  if (!getCachedSettings().hapticsEnabled) return;
+  try {
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setTimeout(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+    }, 120);
+  } catch {
+    // Fail gracefully
+  }
+}

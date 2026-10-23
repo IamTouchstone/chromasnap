@@ -90,6 +90,7 @@ export const HowToPlayModal: React.FC<HowToPlayModalProps> = ({
               <Text style={styles.tipsText}>• Solve faster for bigger speed bonuses.</Text>
               <Text style={styles.tipsText}>• Consecutive solves grow your streak multiplier.</Text>
               <Text style={styles.tipsText}>• Reach 10+ streak to trigger ON FIRE mode!</Text>
+              <Text style={styles.tipsText}>• Complete the required targets to advance levels and earn huge level bonuses!</Text>
               <Text style={styles.tipsText}>• Use dot counts if you have trouble distinguishing colours.</Text>
             </View>
           </ScrollView>

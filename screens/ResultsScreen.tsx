@@ -9,6 +9,7 @@ interface ResultsScreenProps {
   score: number;
   streak: number;
   solves: number;
+  level?: number;
   settings: StoredSettings;
   onPlayAgain: () => void;
   onHomePress: () => void;
@@ -18,11 +19,13 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
   score,
   streak,
   solves,
+  level = 1,
   settings,
   onPlayAgain,
   onHomePress,
 }) => {
-  const isNewBest = score > 0 && score >= settings.bestScore;
+  const isNewBestScore = score > 0 && score >= settings.bestScore;
+  const isNewBestLevel = level > 1 && level >= (settings.bestLevel || 1);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -30,9 +33,14 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
         {/* Top Header */}
         <View style={styles.topSection}>
           <Text style={styles.eyebrow}>RUN COMPLETE</Text>
-          {isNewBest && (
+          {isNewBestScore && (
             <View style={styles.newBestBadge}>
               <Text style={styles.newBestText}>★ NEW BEST SCORE ★</Text>
+            </View>
+          )}
+          {!isNewBestScore && isNewBestLevel && (
+            <View style={styles.newBestBadge}>
+              <Text style={styles.newBestText}>★ NEW BEST LEVEL ★</Text>
             </View>
           )}
         </View>
@@ -47,6 +55,11 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
           <View style={styles.divider} />
 
           <View style={styles.statsRow}>
+            <View style={styles.subStatBlock}>
+              <Text style={styles.subStatLabel}>LEVEL</Text>
+              <Text style={styles.subStatValue}>{level}</Text>
+            </View>
+
             <View style={styles.subStatBlock}>
               <Text style={styles.subStatLabel}>BEST</Text>
               <Text style={styles.subStatValue}>{formatScore(settings.bestScore)}</Text>

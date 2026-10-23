@@ -43,3 +43,10 @@ export function formatScore(score: number): string {
 export function isStreakOnFire(streak: number): boolean {
   return streak >= 10;
 }
+
+/**
+ * Level completion bonus awarded once upon successfully completing all targets of a level.
+ */
+export function calculateLevelBonus(level: number): number {
+  return Math.max(1, level) * 250;
+}

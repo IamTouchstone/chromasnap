@@ -1,88 +1,175 @@
 import { DifficultyState, GridSize } from './types';
 
+export function getTargetsRequiredForLevel(level: number): number {
+  if (level <= 1) return 5;
+  if (level === 2) return 6;
+  if (level === 3) return 7;
+  if (level === 4) return 8;
+  if (level === 5) return 9;
+  if (level === 6) return 10;
+  if (level === 7) return 10;
+  if (level === 8) return 11;
+  return Math.min(15, 11 + Math.floor((level - 8) / 2));
+}
+
 export const INITIAL_DIFFICULTY: DifficultyState = {
   level: 1,
   gridSize: 3,
   minTarget: 3,
-  maxTarget: 5,
+  maxTarget: 6,
   targetBlockCountMin: 2,
   targetBlockCountMax: 2,
   timeLimitSeconds: 15,
+  targetsRequired: 5,
   consecutiveSuccesses: 0,
   consecutiveFailures: 0,
 };
 
 export function getDifficultyForLevel(level: number): Omit<DifficultyState, 'consecutiveSuccesses' | 'consecutiveFailures'> {
-  if (level <= 1) {
+  const safeLevel = Math.max(1, Math.floor(level));
+  const targetsRequired = getTargetsRequiredForLevel(safeLevel);
+
+  if (safeLevel === 1) {
     return {
       level: 1,
       gridSize: 3,
       minTarget: 3,
-      maxTarget: 5,
+      maxTarget: 6,
       targetBlockCountMin: 2,
       targetBlockCountMax: 2,
       timeLimitSeconds: 15,
+      targetsRequired,
     };
   }
 
-  if (level === 2) {
+  if (safeLevel === 2) {
     return {
       level: 2,
       gridSize: 3,
       minTarget: 4,
-      maxTarget: 7,
+      maxTarget: 8,
       targetBlockCountMin: 2,
       targetBlockCountMax: 3,
-      timeLimitSeconds: 12,
+      timeLimitSeconds: 14,
+      targetsRequired,
     };
   }
 
-  if (level === 3) {
+  if (safeLevel === 3) {
     return {
       level: 3,
       gridSize: 3,
       minTarget: 5,
-      maxTarget: 9,
+      maxTarget: 10,
       targetBlockCountMin: 2,
       targetBlockCountMax: 3,
-      timeLimitSeconds: 10,
+      timeLimitSeconds: 12,
+      targetsRequired,
     };
   }
 
-  if (level === 4) {
+  if (safeLevel === 4) {
     return {
       level: 4,
       gridSize: 4,
       minTarget: 6,
-      maxTarget: 11,
+      maxTarget: 13,
       targetBlockCountMin: 2,
       targetBlockCountMax: 4,
-      timeLimitSeconds: 8,
+      timeLimitSeconds: 12,
+      targetsRequired,
     };
   }
 
-  if (level === 5) {
+  if (safeLevel === 5) {
     return {
       level: 5,
       gridSize: 4,
-      minTarget: 7,
-      maxTarget: 14,
+      minTarget: 8,
+      maxTarget: 16,
       targetBlockCountMin: 2,
       targetBlockCountMax: 4,
-      timeLimitSeconds: 7,
+      timeLimitSeconds: 11,
+      targetsRequired,
     };
   }
 
-  // Level 6+: Advanced 5x5 board or high speed 4x4
-  const gridSize: GridSize = level >= 7 ? 5 : 4;
+  if (safeLevel === 6) {
+    return {
+      level: 6,
+      gridSize: 4,
+      minTarget: 10,
+      maxTarget: 20,
+      targetBlockCountMin: 3,
+      targetBlockCountMax: 5,
+      timeLimitSeconds: 10,
+      targetsRequired,
+    };
+  }
+
+  if (safeLevel === 7) {
+    return {
+      level: 7,
+      gridSize: 5,
+      minTarget: 11,
+      maxTarget: 22,
+      targetBlockCountMin: 3,
+      targetBlockCountMax: 5,
+      timeLimitSeconds: 12,
+      targetsRequired,
+    };
+  }
+
+  if (safeLevel === 8) {
+    return {
+      level: 8,
+      gridSize: 5,
+      minTarget: 13,
+      maxTarget: 25,
+      targetBlockCountMin: 3,
+      targetBlockCountMax: 6,
+      timeLimitSeconds: 11,
+      targetsRequired,
+    };
+  }
+
+  if (safeLevel === 9) {
+    return {
+      level: 9,
+      gridSize: 5,
+      minTarget: 15,
+      maxTarget: 28,
+      targetBlockCountMin: 4,
+      targetBlockCountMax: 6,
+      timeLimitSeconds: 10,
+      targetsRequired,
+    };
+  }
+
+  if (safeLevel === 10) {
+    return {
+      level: 10,
+      gridSize: 5,
+      minTarget: 16,
+      maxTarget: 31,
+      targetBlockCountMin: 4,
+      targetBlockCountMax: 7,
+      timeLimitSeconds: 10,
+      targetsRequired,
+    };
+  }
+
+  // Level 11+: Infinite high-level scalability beyond standard bounds
+  const extraLevels = safeLevel - 10;
   return {
-    level,
-    gridSize,
-    minTarget: 8,
-    maxTarget: Math.min(18, 12 + Math.floor((level - 5) * 1.5)),
-    targetBlockCountMin: 2,
-    targetBlockCountMax: Math.min(5, 3 + Math.floor((level - 4) / 2)),
-    timeLimitSeconds: Math.max(5, 7 - Math.floor((level - 5) * 0.5)),
+    level: safeLevel,
+    gridSize: 5,
+    minTarget: Math.min(20, 16 + Math.floor(extraLevels * 0.5)),
+    maxTarget: Math.min(36, 31 + Math.floor(extraLevels * 0.6)),
+    targetBlockCountMin: Math.min(5, 4 + Math.floor(extraLevels / 4)),
+    targetBlockCountMax: Math.min(8, 7 + Math.floor(extraLevels / 3)),
+    timeLimitSeconds: Math.max(8, 10 - Math.floor(extraLevels / 5)),
+    targetsRequired,
   };
 }
 

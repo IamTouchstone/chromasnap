@@ -129,11 +129,47 @@ function generateMistake() {
   return createWavBuffer(sampleRate, samples);
 }
 
+// 6. level_complete.wav: celebratory ascending fanfare chord (550ms)
+function generateLevelComplete() {
+  const duration = 0.55;
+  const numSamples = Math.floor(sampleRate * duration);
+  const samples = new Float32Array(numSamples);
+  const arpeggioNotes = [523.25, 659.25, 783.99, 1046.5];
+  const arpeggioDuration = 0.28;
+  const arpeggioSamples = Math.floor(sampleRate * arpeggioDuration);
+  const noteSamples = Math.floor(arpeggioSamples / arpeggioNotes.length);
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    let sample = 0;
+
+    if (i < arpeggioSamples) {
+      const idx = Math.min(arpeggioNotes.length - 1, Math.floor(i / noteSamples));
+      const freq = arpeggioNotes[idx];
+      const noteProg = (i % noteSamples) / noteSamples;
+      const env = (1 - noteProg * 0.4);
+      sample += (Math.sin(2 * Math.PI * freq * t) * 0.6 + Math.sin(4 * Math.PI * freq * t) * 0.25) * env;
+    } else {
+      const sustainProg = (i - arpeggioSamples) / (numSamples - arpeggioSamples);
+      const env = Math.pow(1 - sustainProg, 1.4);
+      sample += Math.sin(2 * Math.PI * 523.25 * t) * 0.25 * env;
+      sample += Math.sin(2 * Math.PI * 659.25 * t) * 0.25 * env;
+      sample += Math.sin(2 * Math.PI * 783.99 * t) * 0.3 * env;
+      sample += Math.sin(2 * Math.PI * 1046.50 * t) * 0.4 * env;
+      sample += Math.sin(2 * Math.PI * 1318.51 * t) * 0.25 * env;
+    }
+
+    samples[i] = sample * 0.65;
+  }
+  return createWavBuffer(sampleRate, samples);
+}
+
 const outDir = path.join(__dirname, '..', 'assets', 'audio');
 fs.writeFileSync(path.join(outDir, 'tap.wav'), generateTap());
 fs.writeFileSync(path.join(outDir, 'button.wav'), generateButton());
 fs.writeFileSync(path.join(outDir, 'correct.wav'), generateCorrect());
 fs.writeFileSync(path.join(outDir, 'streak.wav'), generateStreak());
 fs.writeFileSync(path.join(outDir, 'mistake.wav'), generateMistake());
+fs.writeFileSync(path.join(outDir, 'level_complete.wav'), generateLevelComplete());
 
-console.log('Successfully generated all 5 audio files in assets/audio!');
+console.log('Successfully generated all 6 audio files in assets/audio!');

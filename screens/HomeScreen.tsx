@@ -47,9 +47,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <View style={styles.bestContainer}>
             <Text style={styles.bestLabel}>BEST SCORE</Text>
             <Text style={styles.bestValue}>{formatScore(settings.bestScore)}</Text>
-            {settings.bestStreak > 0 && (
-              <Text style={styles.streakLabel}>BEST STREAK ×{settings.bestStreak}</Text>
-            )}
+            <View style={styles.bestSubRow}>
+              {settings.bestLevel > 1 && (
+                <Text style={styles.levelLabel}>LEVEL {settings.bestLevel}</Text>
+              )}
+              {settings.bestLevel > 1 && settings.bestStreak > 0 && (
+                <Text style={styles.statDot}> • </Text>
+              )}
+              {settings.bestStreak > 0 && (
+                <Text style={styles.streakLabel}>BEST STREAK ×{settings.bestStreak}</Text>
+              )}
+            </View>
           </View>
 
           {/* Daily Challenge button */}
@@ -152,12 +160,28 @@ const styles = StyleSheet.create({
     color: THEME.textPrimary,
     marginTop: 2,
   },
+  bestSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  levelLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    color: THEME.textPrimary,
+  },
+  statDot: {
+    fontSize: 12,
+    color: THEME.textMuted,
+    marginHorizontal: 2,
+  },
   streakLabel: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.5,
     color: THEME.warning,
-    marginTop: 4,
   },
   dailyButton: {
     marginTop: 22,

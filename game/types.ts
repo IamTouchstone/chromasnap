@@ -36,6 +36,7 @@ export interface DifficultyState {
   targetBlockCountMin: number;
   targetBlockCountMax: number;
   timeLimitSeconds: number;
+  targetsRequired: number;
   consecutiveSuccesses: number;
   consecutiveFailures: number;
 }
@@ -50,6 +51,7 @@ export interface ScoreBreakdown {
 export interface StoredSettings {
   bestScore: number;
   bestStreak: number;
+  bestLevel: number; // highest level reached
   gamesPlayed: number;
   correctAnswers: number;
   bestSolveTime: number | null; // in seconds

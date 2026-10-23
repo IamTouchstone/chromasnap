@@ -58,43 +58,77 @@ function findSolutions(blocks, target, maxSolutionLength = 5, maxSolutionsToFind
   return solutions;
 }
 
+function getTargetsRequiredForLevel(level) {
+  if (level <= 1) return 5;
+  if (level === 2) return 6;
+  if (level === 3) return 7;
+  if (level === 4) return 8;
+  if (level === 5) return 9;
+  if (level === 6) return 10;
+  if (level === 7) return 10;
+  if (level === 8) return 11;
+  return Math.min(15, 11 + Math.floor((level - 8) / 2));
+}
+
 function getDifficultyForLevel(level) {
-  if (level <= 1) {
-    return { level: 1, gridSize: 3, minTarget: 3, maxTarget: 5, targetBlockCountMin: 2, targetBlockCountMax: 2, timeLimitSeconds: 15 };
+  const safeLevel = Math.max(1, Math.floor(level));
+  const targetsRequired = getTargetsRequiredForLevel(safeLevel);
+
+  if (safeLevel === 1) {
+    return { level: 1, gridSize: 3, minTarget: 3, maxTarget: 6, targetBlockCountMin: 2, targetBlockCountMax: 2, timeLimitSeconds: 15, targetsRequired };
   }
-  if (level === 2) {
-    return { level: 2, gridSize: 3, minTarget: 4, maxTarget: 7, targetBlockCountMin: 2, targetBlockCountMax: 3, timeLimitSeconds: 12 };
+  if (safeLevel === 2) {
+    return { level: 2, gridSize: 3, minTarget: 4, maxTarget: 8, targetBlockCountMin: 2, targetBlockCountMax: 3, timeLimitSeconds: 14, targetsRequired };
   }
-  if (level === 3) {
-    return { level: 3, gridSize: 3, minTarget: 5, maxTarget: 9, targetBlockCountMin: 2, targetBlockCountMax: 3, timeLimitSeconds: 10 };
+  if (safeLevel === 3) {
+    return { level: 3, gridSize: 3, minTarget: 5, maxTarget: 10, targetBlockCountMin: 2, targetBlockCountMax: 3, timeLimitSeconds: 12, targetsRequired };
   }
-  if (level === 4) {
-    return { level: 4, gridSize: 4, minTarget: 6, maxTarget: 11, targetBlockCountMin: 2, targetBlockCountMax: 4, timeLimitSeconds: 8 };
+  if (safeLevel === 4) {
+    return { level: 4, gridSize: 4, minTarget: 6, maxTarget: 13, targetBlockCountMin: 2, targetBlockCountMax: 4, timeLimitSeconds: 12, targetsRequired };
   }
-  if (level === 5) {
-    return { level: 5, gridSize: 4, minTarget: 7, maxTarget: 14, targetBlockCountMin: 2, targetBlockCountMax: 4, timeLimitSeconds: 7 };
+  if (safeLevel === 5) {
+    return { level: 5, gridSize: 4, minTarget: 8, maxTarget: 16, targetBlockCountMin: 2, targetBlockCountMax: 4, timeLimitSeconds: 11, targetsRequired };
   }
-  const gridSize = level >= 7 ? 5 : 4;
+  if (safeLevel === 6) {
+    return { level: 6, gridSize: 4, minTarget: 10, maxTarget: 20, targetBlockCountMin: 3, targetBlockCountMax: 5, timeLimitSeconds: 10, targetsRequired };
+  }
+  if (safeLevel === 7) {
+    return { level: 7, gridSize: 5, minTarget: 11, maxTarget: 22, targetBlockCountMin: 3, targetBlockCountMax: 5, timeLimitSeconds: 12, targetsRequired };
+  }
+  if (safeLevel === 8) {
+    return { level: 8, gridSize: 5, minTarget: 13, maxTarget: 25, targetBlockCountMin: 3, targetBlockCountMax: 6, timeLimitSeconds: 11, targetsRequired };
+  }
+  if (safeLevel === 9) {
+    return { level: 9, gridSize: 5, minTarget: 15, maxTarget: 28, targetBlockCountMin: 4, targetBlockCountMax: 6, timeLimitSeconds: 10, targetsRequired };
+  }
+  if (safeLevel === 10) {
+    return { level: 10, gridSize: 5, minTarget: 16, maxTarget: 31, targetBlockCountMin: 4, targetBlockCountMax: 7, timeLimitSeconds: 10, targetsRequired };
+  }
+  const extra = safeLevel - 10;
   return {
-    level,
-    gridSize,
-    minTarget: 8,
-    maxTarget: Math.min(18, 12 + Math.floor((level - 5) * 1.5)),
-    targetBlockCountMin: 2,
-    targetBlockCountMax: Math.min(5, 3 + Math.floor((level - 4) / 2)),
-    timeLimitSeconds: Math.max(5, 7 - Math.floor((level - 5) * 0.5)),
+    level: safeLevel,
+    gridSize: 5,
+    minTarget: Math.min(20, 16 + Math.floor(extra * 0.5)),
+    maxTarget: Math.min(36, 31 + Math.floor(extra * 0.6)),
+    targetBlockCountMin: Math.min(5, 4 + Math.floor(extra / 4)),
+    targetBlockCountMax: Math.min(8, 7 + Math.floor(extra / 3)),
+    timeLimitSeconds: Math.max(8, 10 - Math.floor(extra / 5)),
+    targetsRequired,
   };
 }
 
 function generatePuzzle(difficulty, seed) {
   const rng = createRNG(seed);
   const totalBlocks = difficulty.gridSize * difficulty.gridSize;
+  const maxBlockLen = Math.max(8, difficulty.targetBlockCountMax + 1);
 
-  for (let attempt = 0; attempt < 50; attempt++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     const valuePool = [];
+    const copies = Math.max(1, Math.floor(totalBlocks / 5));
     for (let v = 1; v <= 5; v++) {
-      valuePool.push(v);
-      valuePool.push(v);
+      for (let c = 0; c < copies; c++) {
+        valuePool.push(v);
+      }
     }
     while (valuePool.length < totalBlocks) {
       valuePool.push(randInt(rng, 1, 5));
@@ -117,35 +151,32 @@ function generatePuzzle(difficulty, seed) {
       }
     }
 
-    const targetSize = randInt(rng, difficulty.targetBlockCountMin, difficulty.targetBlockCountMax);
     const availableIndices = Array.from({ length: totalBlocks }, (_, i) => i);
-    shuffle(availableIndices, rng);
+    for (let comboAttempt = 0; comboAttempt < 30; comboAttempt++) {
+      const targetSize = randInt(rng, difficulty.targetBlockCountMin, difficulty.targetBlockCountMax);
+      shuffle(availableIndices, rng);
+      const candidateIndices = availableIndices.slice(0, targetSize);
+      const candidateSum = candidateIndices.reduce((sum, idx) => sum + blocks[idx].value, 0);
 
-    const candidateIndices = [];
-    for (let k = 0; k < targetSize; k++) {
-      candidateIndices.push(availableIndices[k]);
-    }
-
-    const candidateSum = candidateIndices.reduce((sum, idx) => sum + blocks[idx].value, 0);
-
-    if (candidateSum >= difficulty.minTarget && candidateSum <= difficulty.maxTarget) {
-      const solutionBlockIds = candidateIndices.map(idx => blocks[idx].id);
-      const verified = findSolutions(blocks, candidateSum, 5, 5);
-      if (verified.length > 0) {
-        return {
-          gridSize: difficulty.gridSize,
-          blocks,
-          target: candidateSum,
-          solutionBlockIds,
-          maxTimeSeconds: difficulty.timeLimitSeconds,
-        };
+      if (candidateSum >= difficulty.minTarget && candidateSum <= difficulty.maxTarget) {
+        const solutionBlockIds = candidateIndices.map(idx => blocks[idx].id);
+        const verified = findSolutions(blocks, candidateSum, maxBlockLen, 1);
+        if (verified.length > 0) {
+          return {
+            gridSize: difficulty.gridSize,
+            blocks,
+            target: candidateSum,
+            solutionBlockIds,
+            maxTimeSeconds: difficulty.timeLimitSeconds,
+          };
+        }
       }
     }
   }
 
   // Fallback
   return {
-    gridSize: 3,
+    gridSize: difficulty.gridSize,
     blocks: [
       { id: 'b0', color: 'RED', value: 1, row: 0, col: 0 },
       { id: 'b1', color: 'BLUE', value: 2, row: 0, col: 1 },
@@ -153,7 +184,7 @@ function generatePuzzle(difficulty, seed) {
     ],
     target: 4,
     solutionBlockIds: ['b0', 'b2'],
-    maxTimeSeconds: 15,
+    maxTimeSeconds: difficulty.timeLimitSeconds || 15,
   };
 }
 
@@ -171,6 +202,10 @@ function calculateRoundScore(timeRemainingSeconds, maxTimeSeconds, blockCountUse
   const streakBonusMultiplier = 1 + Math.min(streak - 1, 15) * 0.2;
   const totalRoundPoints = Math.round(roundBase * streakBonusMultiplier);
   return { base, speedBonus, efficiencyBonus, totalRoundPoints };
+}
+
+function calculateLevelBonus(level) {
+  return Math.max(1, level) * 250;
 }
 
 console.log('--- EXECUTING 1,200 PUZZLE ENGINE INTEGRITY TESTS ---');
@@ -238,7 +273,8 @@ for (let i = 0; i < totalTests; i++) {
   }
 
   // 5. Verify independent solver finds at least 1 solution
-  const verified = findSolutions(puzzle.blocks, puzzle.target, 5, 1);
+  const maxBlockLen = Math.max(8, difficulty.targetBlockCountMax + 1);
+  const verified = findSolutions(puzzle.blocks, puzzle.target, maxBlockLen, 1);
   if (verified.length === 0) {
     errors.push(`Test #${i}: Independent solver found 0 solutions`);
     continue;
